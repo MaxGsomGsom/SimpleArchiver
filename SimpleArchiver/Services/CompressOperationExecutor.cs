@@ -4,11 +4,11 @@ using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
-    public class CompressOperationExecutor : IOperationExecutor
+    internal sealed class CompressOperationExecutor : IOperationExecutor
     {
         public void Execute(OperationParameters parameters)
         {
-            throw new NotImplementedException();
+            Console.WriteLine(Type);
         }
 
         public ArchiverOperation Type { get; } = ArchiverOperation.Compress;

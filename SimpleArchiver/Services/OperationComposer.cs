@@ -5,7 +5,7 @@ using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
-    public class OperationComposer : IOperationComposer
+    internal sealed class OperationComposer : IOperationComposer
     {
         public OperationParameters Compose(string[] args)
         {
@@ -29,25 +29,17 @@ namespace SimpleArchiver.Services
 
 
             var outputFileName = args[2];
-            if (!File.Exists(outputFileName))
+            if (File.Exists(outputFileName))
             {
                 throw new ArgumentException($"Output file {outputFileName} already exists");
             }
 
-            switch (operation)
+            int inputBlockSize = 0;
+            if (args.Length >= 4)
             {
-                case ArchiverOperation.Compress:
-                    int inputBlockSize = 0;
-                    if (args.Length >= 4)
-                    {
-                        int.TryParse(args[3], out inputBlockSize);
-                    }
-                    return new CompressOperationParameters(inputFileName, outputFileName, inputBlockSize);
-                case ArchiverOperation.Decompress:
-                    return new DecompressOperationParameters(inputFileName, outputFileName);
-                default:
-                    throw new ArgumentOutOfRangeException();
+                int.TryParse(args[3], out inputBlockSize);
             }
+            return new OperationParameters(operation, inputFileName, outputFileName, inputBlockSize);
         }
     }
 }
