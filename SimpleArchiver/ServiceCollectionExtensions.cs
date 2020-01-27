@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using SimpleArchiver.Contracts;
+using SimpleArchiver.Services;
 
 namespace SimpleArchiver
 {
@@ -9,7 +8,10 @@ namespace SimpleArchiver
     {
         public static IServiceCollection RegisterArchiverServices(this IServiceCollection serviceCollection)
         {
-            return serviceCollection;
+            return serviceCollection
+                .AddTransient<IOperationComposer, OperationComposer>()
+                .AddTransient<IOperationExecutor, CompressOperationExecutor>()
+                .AddTransient<IOperationExecutor, DecompressOperationExecutor>();
         }
     }
 }
