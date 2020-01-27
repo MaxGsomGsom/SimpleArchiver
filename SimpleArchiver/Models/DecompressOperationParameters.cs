@@ -2,8 +2,11 @@
 {
     public sealed class DecompressOperationParameters : OperationParameters
     {
-        public override ArchiverOperation Type { get; }
+        public DecompressOperationParameters(string inputFileName, string outputFileName)
+            : base(inputFileName, outputFileName)
+        {
+        }
 
-        public string OutputFileName { get; }
+        public override ArchiverOperation Type { get; } = ArchiverOperation.Decompress;
     }
 }

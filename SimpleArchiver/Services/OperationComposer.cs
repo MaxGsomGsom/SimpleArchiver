@@ -1,4 +1,6 @@
-﻿using SimpleArchiver.Contracts;
+﻿using System;
+using System.IO;
+using SimpleArchiver.Contracts;
 using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
@@ -7,7 +9,45 @@ namespace SimpleArchiver.Services
     {
         public OperationParameters Compose(string[] args)
         {
-            throw new System.NotImplementedException();
+            if (args.Length < 3)
+            {
+                throw new ArgumentException("Invalid arguments. Required: compress/decompress inputFileName outputFileName");
+            }
+
+            Enum.TryParse(args[0], true, out ArchiverOperation operation);
+
+            if (operation == ArchiverOperation.None)
+            {
+                throw new ArgumentException($"Invalid operation: {args[0]}. Available: compress, decompress");
+            }
+
+            var inputFileName = args[1];
+            if (!File.Exists(inputFileName))
+            {
+                throw new ArgumentException($"Input file {inputFileName} doesn't exist");
+            }
+
+
+            var outputFileName = args[2];
+            if (!File.Exists(outputFileName))
+            {
+                throw new ArgumentException($"Output file {outputFileName} already exists");
+            }
+
+            switch (operation)
+            {
+                case ArchiverOperation.Compress:
+                    int inputBlockSize = 0;
+                    if (args.Length >= 4)
+                    {
+                        int.TryParse(args[3], out inputBlockSize);
+                    }
+                    return new CompressOperationParameters(inputFileName, outputFileName, inputBlockSize);
+                case ArchiverOperation.Decompress:
+                    return new DecompressOperationParameters(inputFileName, outputFileName);
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }
