@@ -9,14 +9,13 @@ namespace SimpleArchiver.Services
     internal sealed class BufferPool : IBufferPool
     {
         private readonly ILogger logger;
-        private int totalCount;
-        private SemaphoreSlim semaphore;
+        private int currentCount;
+        private readonly object locker = new object();
         private readonly Dictionary<ReusableMemoryStream, bool> buffers = new Dictionary<ReusableMemoryStream, bool>();
 
         public BufferPool(ILogger logger)
         {
             this.logger = logger;
-            semaphore = new SemaphoreSlim(totalCount);
         }
 
         public void Initialize(int count, int initialBufferSize)
@@ -26,18 +25,26 @@ namespace SimpleArchiver.Services
                 buffers.Add(new ReusableMemoryStream(initialBufferSize, this), true);
             }
 
-            totalCount = count;
-            semaphore?.Dispose();
-            semaphore = new SemaphoreSlim(count);
+            currentCount = count;
         }
 
         public ReusableMemoryStream Take(CancellationToken cancel = default)
         {
-            semaphore.Wait(cancel);
-            logger.Debug($"{nameof(BufferPool)}. Buffer taken. Free buffers {semaphore.CurrentCount}");
+            ReusableMemoryStream freeBuffer;
+            lock (locker)
+            {
+                while (currentCount == 0)
+                {
+                    Monitor.Wait(locker);
+                }
 
-            var freeBuffer = buffers.First(e => e.Value).Key;
-            buffers[freeBuffer] = false;
+                freeBuffer = buffers.First(e => e.Value).Key;
+                buffers[freeBuffer] = false;
+                currentCount--;
+            }
+
+            logger.Debug($"{nameof(BufferPool)}. Buffer taken. Free buffers {currentCount}");
+
             return freeBuffer;
         }
 
@@ -49,16 +56,19 @@ namespace SimpleArchiver.Services
             }
 
             buffer.SetLength(0);
-            buffers[buffer] = true;
 
-            semaphore.Release();
+            lock (locker)
+            {
+                buffers[buffer] = true;
+                currentCount++;
+                Monitor.PulseAll(locker);
+            }
 
-            logger.Debug($"{nameof(BufferPool)}. Buffer returned. Free buffers {semaphore.CurrentCount}");
+            logger.Debug($"{nameof(BufferPool)}. Buffer returned. Free buffers {currentCount}");
         }
 
         public void Dispose()
         {
-            semaphore.Dispose();
             foreach (var buffer in buffers)
             {
                 buffer.Key.Dispose();
