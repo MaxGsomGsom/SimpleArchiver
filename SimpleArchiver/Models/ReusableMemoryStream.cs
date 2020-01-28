@@ -19,5 +19,16 @@ namespace SimpleArchiver.Models
         {
             pool.Return(this);
         }
+
+        public Span<byte> ToSpan()
+        {
+            return new Span<byte>(GetBuffer(), 0, (int)Length);
+        }
+
+        public void FillFrom(Stream stream, int size)
+        {
+            SetLength(size);
+            stream.Read(GetBuffer(), 0, size);
+        }
     }
 }

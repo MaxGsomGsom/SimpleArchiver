@@ -3,35 +3,34 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using SimpleArchiver.Contracts;
-using SimpleArchiver.Extensions;
 using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
-    internal sealed class BlockFileWriter : IBlockFileWriter
+    internal sealed class BlockStreamWriter : IBlockStreamWriter
     {
         private readonly ILogger logger;
         private readonly object locker = new object();
-        private FileStream stream;
-        private int blocksCount, currentBlock;
+        private Stream stream;
+        private int currentBlock;
         private readonly Dictionary<int, ReusableMemoryStream> blocks = new Dictionary<int, ReusableMemoryStream>();
         private Thread writeThread;
-        private bool streamClosed;
+        private bool disposed;
 
-        public BlockFileWriter(ILogger logger)
+        public BlockStreamWriter(ILogger logger)
         {
             this.logger = logger;
         }
 
         public void Dispose()
         {
-            Close();
-            writeThread.Join();
-        }
+            lock (locker)
+            {
+                disposed = true;
+                Monitor.PulseAll(locker);
+            }
 
-        public void SetLength(int blocksCount)
-        {
-            this.blocksCount = blocksCount;
+            writeThread?.Join();
         }
 
         public void Enqueue(ReusableMemoryStream block, int number)
@@ -39,30 +38,19 @@ namespace SimpleArchiver.Services
             lock (locker)
             {
                 blocks.Add(number, block);
-                logger.Info($"{nameof(BlockFileWriter)}. Added block {number} to write");
+                logger.Info($"{nameof(BlockStreamWriter)}. Added block {number} to write");
                 Monitor.PulseAll(locker);
             }
         }
 
-        public void Open(string fileName)
+        public void Initialize(Stream stream)
         {
-            stream = File.Create(fileName);
-            writeThread = new Thread(Consume) { IsBackground = true, Name = nameof(BlockFileWriter) };
+            this.stream = stream;
+            writeThread = new Thread(Consume) { IsBackground = true, Name = nameof(BlockStreamWriter) };
             writeThread.Start();
         }
 
-        public void Close()
-        {
-            lock (locker)
-            {
-                streamClosed = true;
-                Monitor.PulseAll(locker);
-            }
-
-            stream?.Close();
-        }
-
-        public void Wait(CancellationToken cancel = default)
+        public void Wait(int blocksCount, CancellationToken cancel = default)
         {
             while (currentBlock < blocksCount && !cancel.IsCancellationRequested)
             {
@@ -81,7 +69,7 @@ namespace SimpleArchiver.Services
                     {
                         Monitor.Wait(locker);
 
-                        if (streamClosed)
+                        if (disposed)
                         {
                             return;
                         }
@@ -94,7 +82,7 @@ namespace SimpleArchiver.Services
                 var span = block.ToSpan();
                 stream.Write(BitConverter.GetBytes(span.Length));
                 stream.Write(span);
-                logger.Info($"{nameof(BlockFileWriter)}. Block {currentBlock} is written");
+                logger.Info($"{nameof(BlockStreamWriter)}. Block {currentBlock} is written");
 
                 block.Return();
 
