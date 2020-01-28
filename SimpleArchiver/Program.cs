@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleArchiver.Contracts;
+using SimpleArchiver.Extensions;
 
 namespace SimpleArchiver
 {

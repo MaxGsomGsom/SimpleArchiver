@@ -2,7 +2,7 @@
 using SimpleArchiver.Contracts;
 using SimpleArchiver.Services;
 
-namespace SimpleArchiver
+namespace SimpleArchiver.Extensions
 {
     public static class ServiceCollectionExtensions
     {
@@ -11,7 +11,10 @@ namespace SimpleArchiver
             return serviceCollection
                 .AddTransient<IOperationComposer, OperationComposer>()
                 .AddTransient<IOperationExecutor, CompressOperationExecutor>()
-                .AddTransient<IOperationExecutor, DecompressOperationExecutor>();
+                .AddTransient<IOperationExecutor, DecompressOperationExecutor>()
+                .AddTransient<IBufferPool, BufferPool>()
+                .AddTransient<IThreadPool, ThreadPool>()
+                .AddTransient<IBlockFileWriter, BlockFileWriter>();
         }
     }
 }
