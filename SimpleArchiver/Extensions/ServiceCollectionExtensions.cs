@@ -15,7 +15,7 @@ namespace SimpleArchiver.Extensions
                 .AddTransient<IBufferPool, BufferPool>()
                 .AddSingleton<IThreadPool, ThreadPool>()
                 .AddTransient<IBlockStreamWriter, BlockStreamWriter>()
-                .AddSingleton<ILogger, DebugConsoleLogger>();
+                .AddSingleton<ILogger, ConsoleLogger>();
         }
     }
 }

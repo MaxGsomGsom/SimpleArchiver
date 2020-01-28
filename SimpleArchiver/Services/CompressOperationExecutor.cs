@@ -35,7 +35,7 @@ namespace SimpleArchiver.Services
             int lastInputBlockSize = (int)(inputStream.Length - inputBlockSize * (blocksCount - 1));
             bufferPool.Initialize(Math.Min(threadPool.WorkersCount, blocksCount) * 3, inputBlockSize);
 
-            logger.Info($"{nameof(CompressOperationExecutor)}. Number of blocks {blocksCount}");
+            logger.Debug($"{nameof(CompressOperationExecutor)}. Number of blocks {blocksCount}");
 
             outputStream.Write(BitConverter.GetBytes(inputStream.Length));
             outputStream.Write(BitConverter.GetBytes(inputBlockSize));
@@ -69,7 +69,7 @@ namespace SimpleArchiver.Services
             outputBlock.Position = 0;
             outputBlock.Write(BitConverter.GetBytes((int)outputBlock.Length - prefix));
 
-            logger.Info($"{nameof(CompressOperationExecutor)}. Block {number}: input size {inputBlock.Length}, output size {outputBlock.Length - 4}");
+            logger.Debug($"{nameof(CompressOperationExecutor)}. Block {number}: input size {inputBlock.Length}, output size {outputBlock.Length - 4}");
 
             inputBlock.Return();
             blockStreamWriter.Enqueue(outputBlock, number);

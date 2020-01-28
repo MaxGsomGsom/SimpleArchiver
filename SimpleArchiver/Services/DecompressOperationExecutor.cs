@@ -31,7 +31,7 @@ namespace SimpleArchiver.Services
             int blocksCount = (int)(dataSize / outputBlockSize) + (dataSize % outputBlockSize == 0 ? 0 : 1);
             int lastOutputBlockSize = (int)(dataSize - outputBlockSize * (blocksCount - 1));
 
-            logger.Info($"{nameof(DecompressOperationExecutor)}. Number of blocks {blocksCount}");
+            logger.Debug($"{nameof(DecompressOperationExecutor)}. Number of blocks {blocksCount}");
 
             var outputStream = File.Create(parameters.OutputFileName);
             blockStreamWriter.Initialize(outputStream);
@@ -49,7 +49,7 @@ namespace SimpleArchiver.Services
                 int number = blockNumber;
                 threadPool.Enqueue(() => DecompressBlock(inputBlock, number, outputBlock, currentOutputBlockSize));
 
-                logger.Info($"{nameof(DecompressOperationExecutor)}. Block {number}: input size {inputBlockSize}, output size {outputBlockSize}");
+                logger.Debug($"{nameof(DecompressOperationExecutor)}. Block {number}: input size {inputBlockSize}, output size {outputBlockSize}");
             }
 
             inputStream.Close();

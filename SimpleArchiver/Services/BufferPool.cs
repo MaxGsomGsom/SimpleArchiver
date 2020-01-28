@@ -34,7 +34,7 @@ namespace SimpleArchiver.Services
         public ReusableMemoryStream Take(CancellationToken cancel = default)
         {
             semaphore.Wait(cancel);
-            logger.Info($"{nameof(BufferPool)}. Buffer taken. Free buffers {semaphore.CurrentCount}");
+            logger.Debug($"{nameof(BufferPool)}. Buffer taken. Free buffers {semaphore.CurrentCount}");
 
             var freeBuffer = buffers.First(e => e.Value).Key;
             buffers[freeBuffer] = false;
@@ -53,7 +53,7 @@ namespace SimpleArchiver.Services
 
             semaphore.Release();
 
-            logger.Info($"{nameof(BufferPool)}. Buffer returned. Free buffers {semaphore.CurrentCount}");
+            logger.Debug($"{nameof(BufferPool)}. Buffer returned. Free buffers {semaphore.CurrentCount}");
         }
 
         public void Dispose()

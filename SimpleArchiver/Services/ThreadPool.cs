@@ -35,7 +35,7 @@ namespace SimpleArchiver.Services
             lock (locker)
             {
                 taskQueue.Enqueue(task);
-                logger.Info($"{nameof(ThreadPool)}. Task added");
+                logger.Debug($"{nameof(ThreadPool)}. Task added");
                 Monitor.PulseAll(locker);
             }
         }
@@ -69,7 +69,7 @@ namespace SimpleArchiver.Services
                 }
 
                 Interlocked.Decrement(ref freeWorkers);
-                logger.Info($"{nameof(ThreadPool)}. Task executing. Free workers {freeWorkers}");
+                logger.Debug($"{nameof(ThreadPool)}. Task executing. Free workers {freeWorkers}");
                 task();
                 Interlocked.Increment(ref freeWorkers);
             }

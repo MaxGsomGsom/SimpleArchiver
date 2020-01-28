@@ -38,7 +38,7 @@ namespace SimpleArchiver.Services
             lock (locker)
             {
                 blocks.Add(number, block);
-                logger.Info($"{nameof(BlockStreamWriter)}. Added block {number} to write");
+                logger.Debug($"{nameof(BlockStreamWriter)}. Added block {number} to write");
                 Monitor.PulseAll(locker);
             }
         }
@@ -82,7 +82,7 @@ namespace SimpleArchiver.Services
 
                 stream.Write(block.ToSpan());
 
-                logger.Info($"{nameof(BlockStreamWriter)}. Block {currentBlock} is written");
+                logger.Debug($"{nameof(BlockStreamWriter)}. Block {currentBlock} is written");
 
                 block.Return();
 
