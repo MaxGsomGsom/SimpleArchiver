@@ -24,7 +24,8 @@ namespace SimpleArchiver
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                var logger = services.GetRequiredService<ILogger>();
+                logger.Info(e.Message);
                 return 1;
             }
 

@@ -5,8 +5,9 @@ using SimpleArchiver.Contracts;
 
 namespace SimpleArchiver.Services
 {
-    public class ThreadPool : IThreadPool
+    internal sealed class ThreadPool : IThreadPool
     {
+        private readonly ILogger logger;
         public int WorkersCount { get; }
         readonly object locker = new object();
         private readonly List<Thread> workers;
@@ -14,8 +15,9 @@ namespace SimpleArchiver.Services
         private bool disposed;
         private int freeWorkers;
 
-        public ThreadPool()
+        public ThreadPool(ILogger logger)
         {
+            this.logger = logger;
             WorkersCount = Environment.ProcessorCount;
             freeWorkers = WorkersCount;
             workers = new List<Thread>(WorkersCount);
@@ -33,6 +35,7 @@ namespace SimpleArchiver.Services
             lock (locker)
             {
                 taskQueue.Enqueue(task);
+                logger.Info($"{nameof(ThreadPool)}. Task added");
                 Monitor.PulseAll(locker);
             }
         }
@@ -66,6 +69,7 @@ namespace SimpleArchiver.Services
                 }
 
                 Interlocked.Decrement(ref freeWorkers);
+                logger.Info($"{nameof(ThreadPool)}. Task executing. Free workers {freeWorkers}");
                 task();
                 Interlocked.Increment(ref freeWorkers);
             }

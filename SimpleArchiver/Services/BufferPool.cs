@@ -6,14 +6,16 @@ using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
-    public class BufferPool : IBufferPool
+    internal sealed class BufferPool : IBufferPool
     {
+        private readonly ILogger logger;
         private int totalCount;
         private SemaphoreSlim semaphore;
         private readonly Dictionary<ReusableMemoryStream, bool> buffers = new Dictionary<ReusableMemoryStream, bool>();
 
-        public BufferPool()
+        public BufferPool(ILogger logger)
         {
+            this.logger = logger;
             semaphore = new SemaphoreSlim(totalCount);
         }
 
@@ -32,6 +34,7 @@ namespace SimpleArchiver.Services
         public ReusableMemoryStream Take(CancellationToken cancel = default)
         {
             semaphore.Wait(cancel);
+            logger.Info($"{nameof(BufferPool)}. Buffer taken. Free buffers {semaphore.CurrentCount}");
 
             var freeBuffer = buffers.First(e => e.Value).Key;
             buffers[freeBuffer] = false;
@@ -49,6 +52,8 @@ namespace SimpleArchiver.Services
             buffers[buffer] = true;
 
             semaphore.Release();
+
+            logger.Info($"{nameof(BufferPool)}. Buffer returned. Free buffers {semaphore.CurrentCount}");
         }
 
         public void Dispose()

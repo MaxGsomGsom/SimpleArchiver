@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using SimpleArchiver.Contracts;
 using SimpleArchiver.Extensions;
@@ -9,14 +8,20 @@ using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
-    public class BlockFileWriter : IBlockFileWriter
+    internal sealed class BlockFileWriter : IBlockFileWriter
     {
-        readonly object locker = new object();
+        private readonly ILogger logger;
+        private readonly object locker = new object();
         private FileStream stream;
         private int blocksCount, currentBlock;
         private readonly Dictionary<int, ReusableMemoryStream> blocks = new Dictionary<int, ReusableMemoryStream>();
         private Thread writeThread;
         private bool streamClosed;
+
+        public BlockFileWriter(ILogger logger)
+        {
+            this.logger = logger;
+        }
 
         public void Dispose()
         {
@@ -34,6 +39,7 @@ namespace SimpleArchiver.Services
             lock (locker)
             {
                 blocks.Add(number, block);
+                logger.Info($"{nameof(BlockFileWriter)}. Added block {number} to write");
                 Monitor.PulseAll(locker);
             }
         }
@@ -88,6 +94,8 @@ namespace SimpleArchiver.Services
                 var span = block.ToSpan();
                 stream.Write(BitConverter.GetBytes(span.Length));
                 stream.Write(span);
+                logger.Info($"{nameof(BlockFileWriter)}. Block {currentBlock} is written");
+
                 block.Return();
 
                 Interlocked.Increment(ref currentBlock);
