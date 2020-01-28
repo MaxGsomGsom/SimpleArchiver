@@ -1,17 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using SimpleArchiver.Contracts;
+using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
     public class BufferPool : IBufferPool
     {
         private int totalCount;
-        private readonly SemaphoreSlim semaphore;
-        private readonly Dictionary<MemoryStream, bool> buffers = new Dictionary<MemoryStream, bool>();
+        private SemaphoreSlim semaphore;
+        private readonly Dictionary<ReusableMemoryStream, bool> buffers = new Dictionary<ReusableMemoryStream, bool>();
 
         public BufferPool()
         {
@@ -20,15 +19,17 @@ namespace SimpleArchiver.Services
 
         public void Initialize(int count, int initialBufferSize)
         {
-            for (int i = 0; i < totalCount; i++)
+            for (int i = 0; i < count; i++)
             {
-                buffers.Add(new MemoryStream(initialBufferSize), true);
+                buffers.Add(new ReusableMemoryStream(initialBufferSize, this), true);
             }
 
             totalCount = count;
+            semaphore?.Dispose();
+            semaphore = new SemaphoreSlim(count);
         }
 
-        public MemoryStream Take(CancellationToken cancel = default)
+        public ReusableMemoryStream Take(CancellationToken cancel = default)
         {
             semaphore.Wait(cancel);
 
@@ -37,7 +38,7 @@ namespace SimpleArchiver.Services
             return freeBuffer;
         }
 
-        public void Return(MemoryStream buffer)
+        public void Return(ReusableMemoryStream buffer)
         {
             if (!buffers.ContainsKey(buffer))
             {

@@ -13,7 +13,7 @@ namespace SimpleArchiver.Extensions
                 .AddTransient<IOperationExecutor, CompressOperationExecutor>()
                 .AddTransient<IOperationExecutor, DecompressOperationExecutor>()
                 .AddTransient<IBufferPool, BufferPool>()
-                .AddTransient<IThreadPool, ThreadPool>()
+                .AddSingleton<IThreadPool, ThreadPool>()
                 .AddTransient<IBlockFileWriter, BlockFileWriter>();
         }
     }

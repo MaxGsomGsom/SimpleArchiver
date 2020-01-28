@@ -2,7 +2,7 @@
 {
     public sealed class OperationParameters
     {
-        private const int DefaultBlockSize = 1024 * 1024 * 8;
+        private const int DefaultBlockSize = 1024 * 1024 * 1;
 
         public OperationParameters(ArchiverOperation type, string inputFileName, string outputFileName, int inputBlockSize = 0)
         {

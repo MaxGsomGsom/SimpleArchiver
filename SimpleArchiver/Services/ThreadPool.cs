@@ -7,18 +7,22 @@ namespace SimpleArchiver.Services
 {
     public class ThreadPool : IThreadPool
     {
+        public int WorkersCount { get; }
         readonly object locker = new object();
-        readonly List<Thread> workers = new List<Thread>(workerCount);
+        private readonly List<Thread> workers;
         readonly Queue<Action> taskQueue = new Queue<Action>();
-        private const int workerCount = 8;
         private bool disposed;
-        private int freeWorkers = workerCount;
+        private int freeWorkers;
 
         public ThreadPool()
         {
-            for (int i = 0; i < workerCount; i++)
+            WorkersCount = Environment.ProcessorCount;
+            freeWorkers = WorkersCount;
+            workers = new List<Thread>(WorkersCount);
+
+            for (int i = 0; i < WorkersCount; i++)
             {
-                Thread thread = new Thread(Consume) { IsBackground = true };
+                Thread thread = new Thread(Consume) { IsBackground = true, Name = $"{nameof(ThreadPool)} {i}"};
                 workers.Add(thread);
                 thread.Start();
             }
@@ -35,7 +39,7 @@ namespace SimpleArchiver.Services
 
         public void Wait(CancellationToken cancel = default)
         {
-            while (freeWorkers != workerCount && !cancel.IsCancellationRequested)
+            while (freeWorkers != WorkersCount && !cancel.IsCancellationRequested)
             {
                 Thread.Sleep(100);
             }
@@ -69,8 +73,11 @@ namespace SimpleArchiver.Services
 
         public void Dispose()
         {
-            disposed = true;
-            Monitor.PulseAll(locker);
+            lock (locker)
+            {
+                disposed = true;
+                Monitor.PulseAll(locker);
+            }
 
             foreach (var worker in workers)
             {

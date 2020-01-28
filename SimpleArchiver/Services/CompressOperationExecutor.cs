@@ -28,16 +28,16 @@ namespace SimpleArchiver.Services
             var inputStream = File.OpenRead(parameters.InputFileName);
             blockFileWriter.Open(parameters.OutputFileName);
             var blockSize = parameters.InputBlockSize;
-            var blocksCount = inputStream.Length / blockSize +
-                              inputStream.Length % blockSize == 0 ? 0 : 1;
-            bufferPool.Initialize(8, blockSize);
+            var blocksCount = inputStream.Length / blockSize + (inputStream.Length % blockSize == 0 ? 0 : 1);
+            bufferPool.Initialize(threadPool.WorkersCount * 3, blockSize);
 
 
             for (int blockNumber = 0; blockNumber < blocksCount; blockNumber++)
             {
                 var inputBlock = bufferPool.Take();
+                inputBlock.SetLength(blockSize);
                 inputStream.Read(inputBlock.GetBuffer(), 0, blockSize);
-
+                
                 var outputBlock = bufferPool.Take();
                 int number = blockNumber;
                 threadPool.Enqueue(() => CompressBlock(inputBlock, number, outputBlock));
@@ -49,10 +49,11 @@ namespace SimpleArchiver.Services
             blockFileWriter.Close();
         }
 
-        private void CompressBlock(MemoryStream inputBlock, int number, MemoryStream outputBlock)
+        private void CompressBlock(ReusableMemoryStream inputBlock, int number, ReusableMemoryStream outputBlock)
         {
             var gzipStream = new GZipStream(outputBlock, CompressionMode.Compress);
             gzipStream.Write(inputBlock.ToSpan());
+            inputBlock.Return();
             blockFileWriter.Enqueue(outputBlock, number);
         }
 

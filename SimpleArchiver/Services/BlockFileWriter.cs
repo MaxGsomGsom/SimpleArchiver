@@ -5,23 +5,18 @@ using System.Text;
 using System.Threading;
 using SimpleArchiver.Contracts;
 using SimpleArchiver.Extensions;
+using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
     public class BlockFileWriter : IBlockFileWriter
     {
         readonly object locker = new object();
-        private readonly IBufferPool bufferPool;
         private FileStream stream;
         private int blocksCount, currentBlock;
-        private Dictionary<int, MemoryStream> blocks = new Dictionary<int, MemoryStream>();
+        private readonly Dictionary<int, ReusableMemoryStream> blocks = new Dictionary<int, ReusableMemoryStream>();
         private Thread writeThread;
         private bool streamClosed;
-
-        public BlockFileWriter(IBufferPool bufferPool)
-        {
-            this.bufferPool = bufferPool;
-        }
 
         public void Dispose()
         {
@@ -34,7 +29,7 @@ namespace SimpleArchiver.Services
             this.blocksCount = blocksCount;
         }
 
-        public void Enqueue(MemoryStream block, int number)
+        public void Enqueue(ReusableMemoryStream block, int number)
         {
             lock (locker)
             {
@@ -46,14 +41,19 @@ namespace SimpleArchiver.Services
         public void Open(string fileName)
         {
             stream = File.Create(fileName);
-            writeThread = new Thread(Consume) { IsBackground = true };
+            writeThread = new Thread(Consume) { IsBackground = true, Name = nameof(BlockFileWriter) };
+            writeThread.Start();
         }
 
         public void Close()
         {
-            streamClosed = true;
+            lock (locker)
+            {
+                streamClosed = true;
+                Monitor.PulseAll(locker);
+            }
+
             stream?.Close();
-            Monitor.PulseAll(locker);
         }
 
         public void Wait(CancellationToken cancel = default)
@@ -66,13 +66,12 @@ namespace SimpleArchiver.Services
 
         private void Consume()
         {
-            while (currentBlock < blocksCount)
+            while (true)
             {
-                MemoryStream block;
+                ReusableMemoryStream block;
                 lock (locker)
                 {
-                    int nextBlock = currentBlock + 1;
-                    while (!blocks.ContainsKey(nextBlock))
+                    while (!blocks.ContainsKey(currentBlock))
                     {
                         Monitor.Wait(locker);
 
@@ -82,13 +81,15 @@ namespace SimpleArchiver.Services
                         }
                     }
 
-                    block = blocks[nextBlock];
-                    blocks.Remove(nextBlock);
+                    block = blocks[currentBlock];
+                    blocks.Remove(currentBlock);
                 }
 
                 var span = block.ToSpan();
                 stream.Write(BitConverter.GetBytes(span.Length));
                 stream.Write(span);
+                block.Return();
+
                 Interlocked.Increment(ref currentBlock);
             }
         }

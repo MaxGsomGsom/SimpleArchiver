@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
+using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Contracts
 {
@@ -8,8 +8,8 @@ namespace SimpleArchiver.Contracts
     {
         void Initialize(int count, int bufferSize);
 
-        MemoryStream Take(CancellationToken cancel = default);
+        ReusableMemoryStream Take(CancellationToken cancel = default);
 
-        void Return(MemoryStream buffer);
+        void Return(ReusableMemoryStream buffer);
     }
 }

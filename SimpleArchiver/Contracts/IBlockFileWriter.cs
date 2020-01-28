@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
+using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Contracts
 {
@@ -8,7 +8,7 @@ namespace SimpleArchiver.Contracts
     {
         void SetLength(int blocksCount);
 
-        void Enqueue(MemoryStream block, int number);
+        void Enqueue(ReusableMemoryStream block, int number);
 
         void Open(string fileName);
 
