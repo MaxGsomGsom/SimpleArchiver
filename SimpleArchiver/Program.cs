@@ -6,9 +6,9 @@ using SimpleArchiver.Extensions;
 
 namespace SimpleArchiver
 {
-    class Program
+    public class Program
     {
-        static int Main(string[] args)
+        public static int Main(string[] args)
         {
             var serviceCollection = new ServiceCollection();
             serviceCollection.RegisterArchiverServices();

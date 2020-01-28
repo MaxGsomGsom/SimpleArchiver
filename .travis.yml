@@ -1,0 +1,14 @@
+language: csharp
+matrix:
+  include:
+    - os: windows
+      mono: none
+    - os: linux
+      dotnet: 2.1.500
+      mono: none
+    - os: osx
+      dotnet: 2.1.500
+      mono: none
+script:
+- dotnet build
+- dotnet test Tests/Tests.csproj
