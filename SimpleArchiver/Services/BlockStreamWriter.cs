@@ -79,9 +79,9 @@ namespace SimpleArchiver.Services
                     blocks.Remove(currentBlock);
                 }
 
-                var span = block.ToSpan();
-                stream.Write(BitConverter.GetBytes(span.Length));
-                stream.Write(span);
+
+                stream.Write(block.ToSpan());
+
                 logger.Info($"{nameof(BlockStreamWriter)}. Block {currentBlock} is written");
 
                 block.Return();

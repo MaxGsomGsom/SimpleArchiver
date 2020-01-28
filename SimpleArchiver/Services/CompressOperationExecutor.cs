@@ -32,17 +32,19 @@ namespace SimpleArchiver.Services
 
             int inputBlockSize = parameters.InputBlockSize;
             int blocksCount = (int)(inputStream.Length / inputBlockSize) + (inputStream.Length % inputBlockSize == 0 ? 0 : 1);
-            bufferPool.Initialize(threadPool.WorkersCount * 2 + 2, inputBlockSize);
+            int lastInputBlockSize = (int)(inputStream.Length - inputBlockSize * (blocksCount - 1));
+            bufferPool.Initialize(Math.Min(threadPool.WorkersCount, blocksCount) * 3, inputBlockSize);
 
             logger.Info($"{nameof(CompressOperationExecutor)}. Number of blocks {blocksCount}");
 
+            outputStream.Write(BitConverter.GetBytes(inputStream.Length));
             outputStream.Write(BitConverter.GetBytes(inputBlockSize));
-            outputStream.Write(BitConverter.GetBytes(blocksCount));
 
             for (int blockNumber = 0; blockNumber < blocksCount; blockNumber++)
             {
                 var inputBlock = bufferPool.Take();
-                inputBlock.FillFrom(inputStream, inputBlockSize);
+                int currentInputBlockSize = blockNumber == blocksCount - 1 ? lastInputBlockSize : inputBlockSize;
+                inputBlock.FillFrom(inputStream, currentInputBlockSize);
 
                 var outputBlock = bufferPool.Take();
                 int number = blockNumber;
@@ -57,10 +59,18 @@ namespace SimpleArchiver.Services
 
         private void CompressBlock(ReusableMemoryStream inputBlock, int number, ReusableMemoryStream outputBlock)
         {
-            logger.Info($"{nameof(CompressOperationExecutor)}. Block {number}: input size {inputBlock.Length}, output size {outputBlock.Length}");
+            const int prefix = sizeof(int);
+            outputBlock.Position = prefix;
+            using (var gzipStream = new GZipStream(outputBlock, CompressionMode.Compress, true))
+            {
+                gzipStream.Write(inputBlock.ToSpan());
+            }
 
-            var gzipStream = new GZipStream(outputBlock, CompressionMode.Compress);
-            gzipStream.Write(inputBlock.ToSpan());
+            outputBlock.Position = 0;
+            outputBlock.Write(BitConverter.GetBytes((int)outputBlock.Length - prefix));
+
+            logger.Info($"{nameof(CompressOperationExecutor)}. Block {number}: input size {inputBlock.Length}, output size {outputBlock.Length - 4}");
+
             inputBlock.Return();
             blockStreamWriter.Enqueue(outputBlock, number);
         }
