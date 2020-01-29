@@ -65,9 +65,9 @@ namespace SimpleArchiver.Services
             }
         }
 
-        private void DecompressBlock(ReusableMemoryStream inputBlock, int number, ReusableMemoryStream outputBlock, int outputBlockSize)
+        private void DecompressBlock(IBuffer inputBlock, int number, IBuffer outputBlock, int outputBlockSize)
         {
-            using (var gzipStream = new GZipStream(inputBlock, CompressionMode.Decompress, true))
+            using (var gzipStream = new GZipStream(inputBlock.ToStream(), CompressionMode.Decompress, true))
             {
                 outputBlock.FillFrom(gzipStream, outputBlockSize);
             }

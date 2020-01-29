@@ -57,19 +57,20 @@ namespace SimpleArchiver.Services
             outputStream.Close();
         }
 
-        private void CompressBlock(ReusableMemoryStream inputBlock, int number, ReusableMemoryStream outputBlock)
+        private void CompressBlock(IBuffer inputBlock, int number, IBuffer outputBlock)
         {
             const int prefix = sizeof(int);
-            outputBlock.Position = prefix;
-            using (var gzipStream = new GZipStream(outputBlock, CompressionMode.Compress, true))
+            var stream = outputBlock.ToStream();
+            stream.Position = prefix;
+            using (var gzipStream = new GZipStream(stream, CompressionMode.Compress, true))
             {
                 gzipStream.Write(inputBlock.ToSpan());
             }
 
-            outputBlock.Position = 0;
-            outputBlock.Write(BitConverter.GetBytes((int)outputBlock.Length - prefix));
+            stream.Position = 0;
+            stream.Write(BitConverter.GetBytes((int)stream.Length - prefix));
 
-            logger.Debug($"{nameof(CompressOperationExecutor)}. Block {number}: input size {inputBlock.Length}, output size {outputBlock.Length - 4}");
+            logger.Debug($"{nameof(CompressOperationExecutor)}. Block {number}: input size {stream.Length}, output size {stream.Length - 4}");
 
             inputBlock.Return();
             blockStreamWriter.Enqueue(outputBlock, number);

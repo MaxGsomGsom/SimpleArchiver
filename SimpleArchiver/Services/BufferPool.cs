@@ -11,7 +11,7 @@ namespace SimpleArchiver.Services
         private readonly ILogger logger;
         private int currentCount;
         private readonly object locker = new object();
-        private readonly Dictionary<ReusableMemoryStream, bool> buffers = new Dictionary<ReusableMemoryStream, bool>();
+        private readonly Dictionary<IBuffer, bool> buffers = new Dictionary<IBuffer, bool>();
 
         public BufferPool(ILogger logger)
         {
@@ -22,15 +22,15 @@ namespace SimpleArchiver.Services
         {
             for (int i = 0; i < count; i++)
             {
-                buffers.Add(new ReusableMemoryStream(initialBufferSize, this), true);
+                buffers.Add(new BufferMemoryStream(initialBufferSize, this), true);
             }
 
             currentCount = count;
         }
 
-        public ReusableMemoryStream Take(CancellationToken cancel = default)
+        public IBuffer Take(CancellationToken cancel = default)
         {
-            ReusableMemoryStream freeBuffer;
+            IBuffer freeBuffer;
             lock (locker)
             {
                 while (currentCount == 0)
@@ -48,14 +48,14 @@ namespace SimpleArchiver.Services
             return freeBuffer;
         }
 
-        public void Return(ReusableMemoryStream buffer)
+        public void Return(IBuffer buffer)
         {
             if (!buffers.ContainsKey(buffer))
             {
                 return;
             }
 
-            buffer.SetLength(0);
+            buffer.Clear();
 
             lock (locker)
             {
@@ -71,7 +71,7 @@ namespace SimpleArchiver.Services
         {
             foreach (var buffer in buffers)
             {
-                buffer.Key.Dispose();
+                (buffer.Key as BufferMemoryStream)?.Dispose();
             }
         }
     }

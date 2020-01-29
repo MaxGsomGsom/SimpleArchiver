@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using SimpleArchiver.Contracts;
-using SimpleArchiver.Models;
 
 namespace SimpleArchiver.Services
 {
@@ -13,7 +11,7 @@ namespace SimpleArchiver.Services
         private readonly object locker = new object();
         private Stream stream;
         private int currentBlock;
-        private readonly Dictionary<int, ReusableMemoryStream> blocks = new Dictionary<int, ReusableMemoryStream>();
+        private readonly Dictionary<int, IBuffer> blocks = new Dictionary<int, IBuffer>();
         private Thread writeThread;
         private bool disposed;
 
@@ -33,7 +31,7 @@ namespace SimpleArchiver.Services
             writeThread?.Join();
         }
 
-        public void Enqueue(ReusableMemoryStream block, int number)
+        public void Enqueue(IBuffer block, int number)
         {
             lock (locker)
             {
@@ -62,7 +60,7 @@ namespace SimpleArchiver.Services
         {
             while (true)
             {
-                ReusableMemoryStream block;
+                IBuffer block;
                 lock (locker)
                 {
                     while (!blocks.ContainsKey(currentBlock))
